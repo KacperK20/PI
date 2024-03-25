@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Roles {
+  id   Int    @id @default(autoincrement())
+  uid  String @unique @default(cuid())
+  name String @unique
+  User User[]
+}
+
+model ProductCategory {
+  id       Int       @id @default(autoincrement())
+  uid      String    @unique @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id              Int              @id @default(autoincrement())
+  uid             String           @unique @default(cuid())
+  name            String           @unique
+  prod_code       String           @unique
+  image           String?
+  price           String
+  type            String?
+  unit            String           @default("szt.")
+  descrition      String?
+  attributeValues AttributeValue[]
+  category_uid    String?
+  category        ProductCategory? @relation(fields: [category_uid], references: [uid])
+  productQuantities ProductQuantity[] // Added opposite relation field
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  uid           String   @unique @default(cuid())
+  username      String   @unique
+  person_uid    String?  @unique
+  passwordHash  String
+  userAuthToken String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  role_uid      String
+  signature     String?
+  person        Person?  @relation(fields: [person_uid], references: [uid])
+  role          Roles    @relation(fields: [role_uid], references: [uid], onDelete: Cascade)
+}
+
+model Person {
+  id    Int     @id @default(autoincrement())
+  uid   String  @unique @default(cuid())
+  name  String
+  email String?
+  user  User?
+}
+
+model Invoice {
+  id           Int         @id @default(autoincrement())
+  uid          String      @unique @default(cuid())
+  title        String
+  createdAt    DateTime    @default(now())
+  optional     String?
+  dueTime      String
+  amount       String
+  contractorId Int?
+  contractor   Contractor? @relation(fields: [contractorId], references: [id])
+  products     ProductQuantity[] 
+}
+
+model ProductQuantity {
+ quantity   Int
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id] ,onDelete: Cascade)
+  invoiceId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  Int
+
+  @@id([invoiceId, productId])
+}
+
+model Contractor {
+  id          Int          @id @default(autoincrement())
+  uid         String       @unique @default(cuid())
+  NIP         String       @unique
+  name        String
+  createdAt   DateTime     @default(now())
+  account     String       @unique
+  email       String       @unique
+  phone       String       @unique
+  cod         String
+  city        String
+  street      String
+  invoices    Invoice[] // One-to-many relation to Invoice
+  obligations Obligation[] // Added opposite relation field
+}
+
+model Obligation {
+  id           Int         @id @default(autoincrement())
+  uid          String      @unique @default(cuid())
+  title        String
+  createdAt    DateTime    @default(now())
+  optional     String?
+  dueTime      String
+  amount       String
+  contractorId Int?
+  invoicePath  String?
+  contractor   Contractor? @relation(fields: [contractorId], references: [id])
+}
+
+model Attribute {
+  id              Int              @id @default(autoincrement())
+  uid             String           @unique @default(cuid())
+  name            String           @unique
+  global          Boolean
+  AttributeValues AttributeValue[]
+}
+
+model AttributeValue {
+  value         String?
+  attribute_uid String
+  product_uid   String
+  product       Product   @relation(fields: [product_uid], references: [uid])
+  attribute     Attribute @relation(fields: [attribute_uid], references: [uid])
+
+  @@id([product_uid, attribute_uid])
+}
